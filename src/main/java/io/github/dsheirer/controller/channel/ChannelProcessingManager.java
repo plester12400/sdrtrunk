@@ -167,7 +167,8 @@ public class ChannelProcessingManager implements Listener<ChannelEvent>
      */
     public ProcessingChain getProcessingChain(Channel channel)
     {
-        return mProcessingChainsMap.get(channel);
+        //The channel can be null when a traffic channel stops while its row is selected in Now Playing
+        return channel != null ? mProcessingChainsMap.get(channel) : null;
     }
 
     /**
