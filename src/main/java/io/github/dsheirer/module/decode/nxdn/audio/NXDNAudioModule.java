@@ -31,10 +31,11 @@ import io.github.dsheirer.module.decode.nxdn.layer3.scch.Information1;
 import io.github.dsheirer.module.decode.nxdn.layer3.scch.InitializationVectorPart1;
 import io.github.dsheirer.module.decode.nxdn.layer3.type.AudioCodec;
 import io.github.dsheirer.module.decode.nxdn.layer3.type.CipherType;
-import io.github.dsheirer.preference.UserPreferences;
+import io.github.dsheirer.settings.Settings;
 import io.github.dsheirer.sample.Listener;
 import java.util.ArrayList;
 import java.util.List;
+import jmbe.frame.CorrectedAMBEFrame;
 
 /**
  * NXDN AMBE audio module
@@ -49,12 +50,12 @@ public class NXDNAudioModule extends AmbeAudioModule
 
     /**
      * Constructs an instance
-     * @param userPreferences component
+     * @param settings component
      * @param aliasList for the current channel
      */
-    public NXDNAudioModule(UserPreferences userPreferences, AliasList aliasList)
+    public NXDNAudioModule(Settings settings, AliasList aliasList)
     {
-        super(userPreferences, aliasList, 0);
+        super(settings, aliasList, 0);
     }
 
     @Override
@@ -147,9 +148,14 @@ public class NXDNAudioModule extends AmbeAudioModule
     {
         if(!mEncryptedCall && mAudioCodec != null && mAudioCodec.equals(AudioCodec.HALF_RATE)) //Full rate not yet supported
         {
-            for(byte[] frame : audio.getAudioFrames())
+            List<byte[]> frames = audio.getAudioFrames();
+
+            //Only error correct the frames in sdrtrunk when the JMBE library (version 3+) can synthesize from them
+            List<CorrectedAMBEFrame> correctedFrames = isCorrectedFrameSupported() ? audio.getCorrectedAudioFrames() : null;
+
+            for(int x = 0; x < frames.size(); x++)
             {
-                addAudio(getAudioCodec().getAudio(frame));
+                addAudio(getAudio(frames.get(x), correctedFrames != null ? correctedFrames.get(x) : null));
             }
         }
         else
