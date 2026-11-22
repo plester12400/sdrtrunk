@@ -375,8 +375,22 @@ public class AudioPlaybackManager implements Listener<AudioSegment>, IAudioContr
             {
                 if(mAudioOutput != null)
                 {
-                    mAudioOutput.dispose();
+                    AudioOutput previous = mAudioOutput;
+                    //Clear the reference first so a failure below can't leave the disposed output in use, which
+                    //blocked every later device change and left playback silent.
+                    mAudioOutput = null;
+
+                    try
+                    {
+                        previous.dispose();
+                    }
+                    catch(Exception e)
+                    {
+                        mLog.error("Error disposing previous audio output", e);
+                    }
                 }
+
+                mLog.info("Changing audio playback device to [" + audioDevice.getMixerInfo().getName() + "]");
 
                 int channelCount = audioDevice.getAudioFormat().getChannels();
 

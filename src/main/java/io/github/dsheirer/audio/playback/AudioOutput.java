@@ -73,7 +73,25 @@ public class AudioOutput implements LineListener
     public AudioOutput(AudioPlaybackDeviceDescriptor descriptor, AudioProvider audioProvider)
     {
         mAudioProvider = audioProvider;
-        Mixer mixer = AudioSystem.getMixer(descriptor.getMixerInfo());
+        Mixer mixer = getMixer(descriptor.getMixerInfo());
+
+        if(mixer == null)
+        {
+            //The mixer info can go stale when the OS audio device list changes (e.g. a Bluetooth device connects),
+            //so look the device up again by name in the current device list before falling back to another device.
+            AudioPlaybackDeviceDescriptor current = AudioPlaybackDeviceManager.getAudioPlaybackDevice(
+                    descriptor.getMixerInfo().getName(), descriptor.getAudioFormat().getChannels());
+
+            if(current != null)
+            {
+                mixer = getMixer(current.getMixerInfo());
+
+                if(mixer != null)
+                {
+                    descriptor = current;
+                }
+            }
+        }
 
         if(mixer == null)
         {
@@ -84,7 +102,7 @@ public class AudioOutput implements LineListener
             while((mixer == null) && (selected < descriptors.size()))
             {
                 descriptor = descriptors.get(selected++);
-                mixer = AudioSystem.getMixer(descriptor.getMixerInfo());
+                mixer = getMixer(descriptor.getMixerInfo());
             }
         }
 
@@ -114,7 +132,7 @@ public class AudioOutput implements LineListener
                     mCanProcessAudio = true;
                 }
             }
-            catch(LineUnavailableException e)
+            catch(LineUnavailableException | IllegalArgumentException e)
             {
                 mLog.error("Couldn't open source data line for mixer: " + descriptor.getMixerInfo().getName(), e);
             }
@@ -139,6 +157,22 @@ public class AudioOutput implements LineListener
                     audioChannel.setDisabled(true);
                 }
             }
+        }
+    }
+
+    /**
+     * Gets the mixer for the mixer info, or null when the audio system no longer supports that mixer info.
+     */
+    private static Mixer getMixer(Mixer.Info mixerInfo)
+    {
+        try
+        {
+            return AudioSystem.getMixer(mixerInfo);
+        }
+        catch(IllegalArgumentException | SecurityException e)
+        {
+            mLog.warn("Audio playback device is no longer available [" + mixerInfo.getName() + "]");
+            return null;
         }
     }
 

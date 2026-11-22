@@ -386,8 +386,15 @@ public class AudioChannel implements Listener<IdentifierUpdateNotification>
      */
     public void dispose()
     {
+        try
+        {
+            MyEventBus.getGlobalEventBus().unregister(this);
+        }
+        catch(IllegalArgumentException iae)
+        {
+            //Already unregistered - dispose was called more than once
+        }
 
-        MyEventBus.getGlobalEventBus().unregister(this);
         disposeCurrentAudioSegment();
         mAudioEventBroadcaster.clear();
         mIdentifierCollectionListener = null;
