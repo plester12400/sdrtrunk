@@ -41,9 +41,13 @@ import io.github.dsheirer.module.Module;
 import io.github.dsheirer.module.decode.am.AMDecoder;
 import io.github.dsheirer.module.decode.am.AMDecoderState;
 import io.github.dsheirer.module.decode.am.DecodeConfigAM;
+import io.github.dsheirer.module.decode.config.AccessCodeFilter;
 import io.github.dsheirer.module.decode.config.AuxDecodeConfiguration;
 import io.github.dsheirer.module.decode.config.DecodeConfigJMBE;
 import io.github.dsheirer.module.decode.config.DecodeConfiguration;
+import io.github.dsheirer.module.decode.cw.CWDecoder;
+import io.github.dsheirer.module.decode.cw.CWDecoderState;
+import io.github.dsheirer.module.decode.cw.CWMessageFilter;
 import io.github.dsheirer.module.decode.nbfm.DeemphasisMode;
 import io.github.dsheirer.module.decode.squelch.dcs.DCSDecoder;
 import io.github.dsheirer.module.decode.squelch.dcs.DCSDecoderState;
@@ -92,6 +96,9 @@ import io.github.dsheirer.module.decode.nxdn.NXDNTrafficChannelManager;
 import io.github.dsheirer.module.decode.nxdn.audio.NXDNAudioModule;
 import io.github.dsheirer.module.decode.nxdn.layer3.filter.NXDNMessageFilterSet;
 import io.github.dsheirer.module.decode.p25.P25TrafficChannelManager;
+import io.github.dsheirer.module.decode.pager.PagerDecoder;
+import io.github.dsheirer.module.decode.pager.PagerDecoderState;
+import io.github.dsheirer.module.decode.pager.PagerMessageFilter;
 import io.github.dsheirer.module.decode.p25.audio.P25P1AudioModule;
 import io.github.dsheirer.module.decode.p25.audio.P25P2AudioModule;
 import io.github.dsheirer.module.decode.p25.phase1.DecodeConfigP25Phase1;
@@ -353,6 +360,7 @@ public class DecoderFactory
 
             P25P1AudioModule audioModule = new P25P1AudioModule(settings, aliasList);
             configureJMBEAudioModule(audioModule, configP25P1);
+            audioModule.setNacFilter(configP25P1.getNacFilter());
             modules.add(audioModule);
 
             //Add a channel rotation monitor when we have multiple control channel frequencies specified
@@ -564,6 +572,7 @@ public class DecoderFactory
 
             NXDNAudioModule audioModule = new NXDNAudioModule(settings, aliasList);
             configureJMBEAudioModule(audioModule, configNXDN);
+            audioModule.setRanFilter(configNXDN.getEffectiveRanFilter());
             modules.add(audioModule);
 
             if(channel.getChannelType() == ChannelType.STANDARD)
@@ -717,6 +726,8 @@ public class DecoderFactory
         DMRAudioModule audioModule2 = new DMRAudioModule(settings, aliasList, DMRMessage.TIMESLOT_2);
         configureJMBEAudioModule(audioModule1, decodeConfig);
         configureJMBEAudioModule(audioModule2, decodeConfig);
+        audioModule1.setColorCodeFilter(decodeConfig.getColorCodeFilter());
+        audioModule2.setColorCodeFilter(decodeConfig.getColorCodeFilter());
         modules.add(audioModule1);
         modules.add(audioModule2);
 
@@ -746,6 +757,10 @@ public class DecoderFactory
             {
                 switch(auxDecoder)
                 {
+                    case CW_ID:
+                        modules.add(new CWDecoder());
+                        modules.add(new CWDecoderState());
+                        break;
                     case DCS:
                         modules.add(new DCSDecoder());
                         modules.add(new DCSDecoderState());
@@ -761,6 +776,10 @@ public class DecoderFactory
                     case LJ_1200:
                         modules.add(new LJ1200Decoder());
                         modules.add(new LJ1200DecoderState());
+                        break;
+                    case PAGER:
+                        modules.add(new PagerDecoder());
+                        modules.add(new PagerDecoderState());
                         break;
                     case TAIT_1200:
                         modules.add(new Tait1200Decoder());
@@ -807,6 +826,9 @@ public class DecoderFactory
 
         switch(decoder)
         {
+            case CW_ID:
+                filters.add(new CWMessageFilter());
+                break;
             case DCS:
                 filters.add(new DCSMessageFilter());
                 break;
@@ -839,6 +861,9 @@ public class DecoderFactory
                 break;
             case P25_PHASE2:
                 filters.add(new P25P2MessageFilterSet());
+                break;
+            case PAGER:
+                filters.add(new PagerMessageFilter());
                 break;
             case PASSPORT:
                 filters.add(new PassportMessageFilter());
@@ -888,6 +913,14 @@ public class DecoderFactory
     }
 
     /**
+     * Copy of an access code filter, or null
+     */
+    private static AccessCodeFilter copyOf(AccessCodeFilter filter)
+    {
+        return filter != null ? filter.copy() : null;
+    }
+
+    /**
      * Creates a copy of the configuration
      */
     public static DecodeConfiguration copy(DecodeConfiguration config)
@@ -907,6 +940,7 @@ public class DecoderFactory
                 case DMR:
                     DecodeConfigDMR originalDMR = (DecodeConfigDMR)config;
                     DecodeConfigDMR copyDMR = new DecodeConfigDMR();
+                    copyDMR.setColorCodeFilter(copyOf(originalDMR.getColorCodeFilter()));
                     transferJMBESettings(originalDMR, copyDMR);
                     return copyDMR;
                 case LTR_NET:
@@ -944,6 +978,7 @@ public class DecoderFactory
                     copyNXDN.setChannelMap(origNXDN.getChannelMap());
                     copyNXDN.setTransmissionMode(origNXDN.getTransmissionMode());
                     copyNXDN.setTrafficChannelPoolSize(origNXDN.getTrafficChannelPoolSize());
+                    copyNXDN.setRanFilter(copyOf(origNXDN.getRanFilter()));
                     transferJMBESettings(origNXDN, copyNXDN);
                     return copyNXDN;
                 case P25_PHASE1:
@@ -954,6 +989,7 @@ public class DecoderFactory
                     copyP25P1.setIgnoreDoNotMonitorCalls(originalP25P1.getIgnoreDoNotMonitorCalls());
                     copyP25P1.setModulation(originalP25P1.getModulation());
                     copyP25P1.setTrafficChannelPoolSize(originalP25P1.getTrafficChannelPoolSize());
+                    copyP25P1.setNacFilter(copyOf(originalP25P1.getNacFilter()));
                     transferJMBESettings(originalP25P1, copyP25P1);
                     return copyP25P1;
                 case P25_PHASE2:

@@ -76,6 +76,14 @@ public class SlotType
     }
 
     /**
+     * Number of bits corrected by the Golay(24) decoder.
+     */
+    public int getCorrectedBitCount()
+    {
+        return getMessage().getCorrectedBitCount();
+    }
+
+    /**
      * SlotType message extracted from the transmitted message and Golay(24) error detection and correction complete.
      *
      * Note: this message is extracted with 4 leading/padding bits plus the 20 message bits for an overall length of
@@ -97,7 +105,9 @@ public class SlotType
         int errorCount = Golay24.checkAndCorrect(decodedMessage, 0);
         decodedMessage.setCorrectedBitCount(errorCount);
         SlotType slotType = new SlotType(decodedMessage);
-        slotType.setValid(errorCount < 3);
+        //Golay24 returns 2 when uncorrectable.  The 4 padding bits are zero in every Golay(20,8) codeword, so a
+        //correction that sets any of them is a miscorrection.
+        slotType.setValid(errorCount < 2 && decodedMessage.getInt(0, 3) == 0);
         return slotType;
     }
 

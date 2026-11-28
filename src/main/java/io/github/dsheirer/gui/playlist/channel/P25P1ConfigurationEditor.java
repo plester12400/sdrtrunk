@@ -26,6 +26,7 @@ import io.github.dsheirer.gui.playlist.record.RecordConfigurationEditor;
 import io.github.dsheirer.gui.playlist.source.FrequencyEditor;
 import io.github.dsheirer.gui.playlist.source.SourceConfigurationEditor;
 import io.github.dsheirer.module.decode.DecoderType;
+import io.github.dsheirer.module.decode.config.AccessCodeFilter;
 import io.github.dsheirer.module.decode.config.AuxDecodeConfiguration;
 import io.github.dsheirer.module.decode.config.DecodeConfiguration;
 import io.github.dsheirer.module.decode.p25.phase1.DecodeConfigP25Phase1;
@@ -83,6 +84,7 @@ public class P25P1ConfigurationEditor extends ChannelConfigurationEditor
     private Slider mJmbeToneGainSlider;
     private ToggleSwitch mLegacyToneLevelsButton;
     private Slider mJmbeNoiseGainSlider;
+    private AccessCodeFilterEditor mNacFilterEditor;
 
     /**
      * Constructs an instance
@@ -182,6 +184,11 @@ public class P25P1ConfigurationEditor extends ChannelConfigurationEditor
             Label modulationHelpLabel = new Label("C4FM: repeaters and non-simulcast trunked systems.  LSM: simulcast trunked systems.");
             GridPane.setConstraints(modulationHelpLabel, 0, row, 6, 1);
             gridPane.getChildren().add(modulationHelpLabel);
+
+            row++;
+
+            GridPane.setConstraints(getNacFilterEditor(), 0, row, 8, 1);
+            gridPane.getChildren().add(getNacFilterEditor());
 
             row++;
 
@@ -393,6 +400,17 @@ public class P25P1ConfigurationEditor extends ChannelConfigurationEditor
         return mIgnoreDoNotMonitorCallsButton;
     }
 
+    private AccessCodeFilterEditor getNacFilterEditor()
+    {
+        if(mNacFilterEditor == null)
+        {
+            mNacFilterEditor = new AccessCodeFilterEditor("NAC", DecodeConfigP25Phase1.NAC_MAXIMUM, 3, true,
+                AccessCodeFilter.Format.HEX, modifiedProperty());
+        }
+
+        return mNacFilterEditor;
+    }
+
     private ToggleSwitch getIgnoreDataCallsButton()
     {
         if(mIgnoreDataCallsButton == null)
@@ -451,9 +469,11 @@ public class P25P1ConfigurationEditor extends ChannelConfigurationEditor
         getIgnoreEncryptedCallsButton().setDisable(config == null);
         getIgnoreDoNotMonitorCallsButton().setDisable(config == null);
         getTrafficChannelPoolSizeSpinner().setDisable(config == null);
+        getNacFilterEditor().setEditorDisabled(config == null);
 
         if(config instanceof DecodeConfigP25Phase1 decodeConfig)
         {
+            getNacFilterEditor().setFilter(decodeConfig.getNacFilter());
             getIgnoreDataCallsButton().setSelected(decodeConfig.getIgnoreDataCalls());
             getIgnoreEncryptedCallsButton().setSelected(decodeConfig.getIgnoreEncryptedCalls());
             getIgnoreDoNotMonitorCallsButton().setSelected(decodeConfig.getIgnoreDoNotMonitorCalls());
@@ -484,6 +504,7 @@ public class P25P1ConfigurationEditor extends ChannelConfigurationEditor
             getIgnoreEncryptedCallsButton().setSelected(false);
             getIgnoreDoNotMonitorCallsButton().setSelected(false);
             getTrafficChannelPoolSizeSpinner().getValueFactory().setValue(0);
+            getNacFilterEditor().setFilter(null);
             getJmbeAGCButton().setDisable(true);
             getJmbeNoiseGainSlider().setDisable(true);
             getJmbeToneGainSlider().setDisable(true);
@@ -518,6 +539,7 @@ public class P25P1ConfigurationEditor extends ChannelConfigurationEditor
         config.setComfortNoiseGain((float)getJmbeNoiseGainSlider().getValue());
         config.setToneGain((float)getJmbeToneGainSlider().getValue());
         config.setLegacyToneLevels(getLegacyToneLevelsButton().isSelected());
+        config.setNacFilter(getNacFilterEditor().getFilter());
         getItem().setDecodeConfiguration(config);
     }
 

@@ -830,8 +830,8 @@ public class P25P2DecoderState extends TimeslotDecoderState implements Identifie
                         if(mChannel.isStandardChannel())
                         {
                             MutableIdentifierCollection mic2 = getIdentifierCollectionForUser(cgu.getGroupAddress2(), message.getTimestamp());
-                            mic2.update(cgu.getChannel1());
-                            mTrafficChannelManager.processP2ChannelUpdate(cgu.getChannel1(), cgu.getServiceOptions2(), mic2,
+                            mic2.update(cgu.getChannel2());
+                            mTrafficChannelManager.processP2ChannelUpdate(cgu.getChannel2(), cgu.getServiceOptions2(), mic2,
                                     mac.getOpcode(), message.getTimestamp(), mac.toString());
                         }
                     }
@@ -843,8 +843,8 @@ public class P25P2DecoderState extends TimeslotDecoderState implements Identifie
                         if(mChannel.isStandardChannel())
                         {
                             MutableIdentifierCollection mic3 = getIdentifierCollectionForUser(cgu.getGroupAddress3(), message.getTimestamp());
-                            mic3.update(cgu.getChannel1());
-                            mTrafficChannelManager.processP2ChannelUpdate(cgu.getChannel1(), cgu.getServiceOptions3(), mic3,
+                            mic3.update(cgu.getChannel3());
+                            mTrafficChannelManager.processP2ChannelUpdate(cgu.getChannel3(), cgu.getServiceOptions3(), mic3,
                                     mac.getOpcode(), message.getTimestamp(), mac.toString());
                         }
                     }
@@ -870,8 +870,8 @@ public class P25P2DecoderState extends TimeslotDecoderState implements Identifie
                         if(mChannel.isStandardChannel())
                         {
                             MutableIdentifierCollection mic2 = getIdentifierCollectionForUser(cgu.getGroupAddress2(), message.getTimestamp());
-                            mic2.update(cgu.getChannel1());
-                            mTrafficChannelManager.processP2ChannelUpdate(cgu.getChannel1(), cgu.getServiceOptions2(), mic2,
+                            mic2.update(cgu.getChannel2());
+                            mTrafficChannelManager.processP2ChannelUpdate(cgu.getChannel2(), cgu.getServiceOptions2(), mic2,
                                     mac.getOpcode(), message.getTimestamp(), mac.toString());
                         }
                     }
@@ -900,8 +900,8 @@ public class P25P2DecoderState extends TimeslotDecoderState implements Identifie
                         if(mChannel.isStandardChannel())
                         {
                             MutableIdentifierCollection mic2 = getIdentifierCollectionForUser(cgu.getGroupAddress2(), message.getTimestamp());
-                            mic2.update(cgu.getChannel1());
-                            mTrafficChannelManager.processP2ChannelUpdate(cgu.getChannel1(), serviceOptions, mic2,
+                            mic2.update(cgu.getChannel2());
+                            mTrafficChannelManager.processP2ChannelUpdate(cgu.getChannel2(), serviceOptions, mic2,
                                     mac.getOpcode(), message.getTimestamp(), mac.toString());
                         }
                     }
@@ -1600,7 +1600,7 @@ public class P25P2DecoderState extends TimeslotDecoderState implements Identifie
             boolean p1 = ip.isTalkgroupPriority1();
             broadcast(P25DecodeEvent.builder(DecodeEventType.PAGE, message.getTimestamp())
                     .channel(getCurrentChannel())
-                    .details(p1 ? "PRIORITY " : "" + "USER PAGE-RETURN TO CONTROL CHANNEL")
+                    .details((p1 ? "PRIORITY " : "") + "USER PAGE-RETURN TO CONTROL CHANNEL")
                     .identifiers(getIdentifierCollectionForUser(ip.getTargetAddress1(), message.getTimestamp()))
                     .timeslot(getTimeslot())
                     .build());
@@ -1610,7 +1610,7 @@ public class P25P2DecoderState extends TimeslotDecoderState implements Identifie
                 boolean p2 = ip.isTalkgroupPriority2();
                 broadcast(P25DecodeEvent.builder(DecodeEventType.PAGE, message.getTimestamp())
                         .channel(getCurrentChannel())
-                        .details(p2 ? "PRIORITY " : "" + "USER PAGE-RETURN TO CONTROL CHANNEL")
+                        .details((p2 ? "PRIORITY " : "") + "USER PAGE-RETURN TO CONTROL CHANNEL")
                         .identifiers(getIdentifierCollectionForUser(ip.getTargetAddress2(), message.getTimestamp()))
                         .timeslot(getTimeslot())
                         .build());
@@ -1620,7 +1620,7 @@ public class P25P2DecoderState extends TimeslotDecoderState implements Identifie
                     boolean p3 = ip.isTalkgroupPriority3();
                     broadcast(P25DecodeEvent.builder(DecodeEventType.PAGE, message.getTimestamp())
                             .channel(getCurrentChannel())
-                            .details(p3 ? "PRIORITY " : "" + "USER PAGE-RETURN TO CONTROL CHANNEL")
+                            .details((p3 ? "PRIORITY " : "") + "USER PAGE-RETURN TO CONTROL CHANNEL")
                             .identifiers(getIdentifierCollectionForUser(ip.getTargetAddress3(), message.getTimestamp()))
                             .timeslot(getTimeslot())
                             .build());
@@ -1630,7 +1630,7 @@ public class P25P2DecoderState extends TimeslotDecoderState implements Identifie
                         boolean p4 = ip.isTalkgroupPriority4();
                         broadcast(P25DecodeEvent.builder(DecodeEventType.PAGE, message.getTimestamp())
                                 .channel(getCurrentChannel())
-                                .details(p4 ? "PRIORITY " : "" + "USER PAGE-RETURN TO CONTROL CHANNEL")
+                                .details((p4 ? "PRIORITY " : "") + "USER PAGE-RETURN TO CONTROL CHANNEL")
                                 .identifiers(getIdentifierCollectionForUser(ip.getTargetAddress4(), message.getTimestamp()))
                                 .timeslot(getTimeslot())
                                 .build());

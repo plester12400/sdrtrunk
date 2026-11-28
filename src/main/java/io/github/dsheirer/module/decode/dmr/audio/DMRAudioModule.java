@@ -32,6 +32,8 @@ import io.github.dsheirer.identifier.tone.ToneIdentifierMessage;
 import io.github.dsheirer.identifier.tone.ToneSequence;
 import io.github.dsheirer.message.IMessage;
 import io.github.dsheirer.message.IMessageProvider;
+import io.github.dsheirer.module.decode.config.AccessCodeFilter;
+import io.github.dsheirer.module.decode.dmr.DMRColorCodeGate;
 import io.github.dsheirer.module.decode.dmr.identifier.DMRToneIdentifier;
 import io.github.dsheirer.module.decode.dmr.message.data.header.PiHeader;
 import io.github.dsheirer.module.decode.dmr.message.data.header.VoiceHeader;
@@ -65,6 +67,7 @@ public class DMRAudioModule extends AmbeAudioModule implements IdentifierUpdateP
     private boolean mEncryptedCallStateEstablished = false;
     private boolean mEncryptedCall = false;
     private Listener<IMessage> mMessageListener;
+    private DMRColorCodeGate mColorCodeGate = new DMRColorCodeGate(null);
 
     /**
      * Constructs an instance
@@ -75,6 +78,16 @@ public class DMRAudioModule extends AmbeAudioModule implements IdentifierUpdateP
     public DMRAudioModule(Settings settings, AliasList aliasList, int timeslot)
     {
         super(settings, aliasList, timeslot);
+    }
+
+    /**
+     * Sets the color code (CC) filter for the audio path, so that voice from a co-channel transmitter with a different
+     * color code is not decoded into the call audio.
+     * @param colorCodeFilter to apply, or null to pass all audio.
+     */
+    public void setColorCodeFilter(AccessCodeFilter colorCodeFilter)
+    {
+        mColorCodeGate = new DMRColorCodeGate(colorCodeFilter);
     }
 
     @Override
@@ -92,6 +105,7 @@ public class DMRAudioModule extends AmbeAudioModule implements IdentifierUpdateP
         mEncryptedCall = false;
         mEncryptedCallStateEstablished = false;
         mQueuedAmbeFrames.clear();
+        mColorCodeGate.reset();
     }
 
     @Override
@@ -106,6 +120,12 @@ public class DMRAudioModule extends AmbeAudioModule implements IdentifierUpdateP
     {
         if(hasAudioCodec() && message.getTimeslot() == getTimeslot())
         {
+            //Color code filter: drop bursts from co-channel transmitters with a non-matching color code
+            if(!mColorCodeGate.passes(message))
+            {
+                return;
+            }
+
             //Ignore voice messages where none of the AMBE voice frames pass error detection, so that invalid voice
             //messages (ie false sync detections) don't produce audio or establish the encryption state.
             if(message instanceof VoiceMessage voiceMessage && !voiceMessage.isValid())
@@ -122,21 +142,14 @@ public class DMRAudioModule extends AmbeAudioModule implements IdentifierUpdateP
                     mEncryptedCallStateEstablished = true;
                     mEncryptedCall = false;
                 }
-                //Both Motorola and Hytera signal their Basic Privacy (BP) scrambling in some of the Voice B-F frames
-                //in the EMB field.
-                else if(message instanceof VoiceEMBMessage voice)
+                //Motorola and Hytera signal Basic Privacy (BP) parameters in the voice frame F single burst.  The EMB
+                //PI bit is the pre-emption and power control indicator (TS 102 361-1 9.3.2), not an encryption flag,
+                //so other voice frames leave the state to the link control or PI header.
+                else if(message instanceof VoiceEMBMessage voice && voice.hasEmbeddedParameters() &&
+                        voice.getEmbeddedParameters().getShortBurst() instanceof EmbeddedEncryptionParameters)
                 {
-                    if(voice.hasEmbeddedParameters() &&
-                       voice.getEmbeddedParameters().getShortBurst() instanceof EmbeddedEncryptionParameters)
-                    {
-                        mEncryptedCallStateEstablished = true;
-                        mEncryptedCall = true;
-                    }
-                    else if(voice.getEMB().isValid())
-                    {
-                        mEncryptedCallStateEstablished = true;
-                        mEncryptedCall = voice.getEMB().isEncrypted();
-                    }
+                    mEncryptedCallStateEstablished = true;
+                    mEncryptedCall = true;
                 }
                 else if(message instanceof VoiceHeader vh && vh.getLCMessage() instanceof AbstractVoiceChannelUser vcu &&
                         vcu.isValid())
@@ -354,6 +367,7 @@ public class DMRAudioModule extends AmbeAudioModule implements IdentifierUpdateP
             if(event.getTimeslot() == getTimeslot() && event.getSquelchState() == SquelchState.SQUELCH)
             {
                 closeAudioSegment();
+                reset();
             }
         }
     }
